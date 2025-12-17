@@ -17,5 +17,5 @@ Ouput:
 DataBase Password:
 Energy@200388
 
-postgresql://postgres:Energy@200388@db.vmfwcfzytvweqjhhdbsb.supabase.co:5432/postgres
+
 

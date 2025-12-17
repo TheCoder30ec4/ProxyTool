@@ -35,3 +35,4 @@ echo "Done! Docker IPv6 should now be enabled."
 echo "You can now run your container and it should be able to connect to Supabase via IPv6."
 
 
+
