@@ -37,7 +37,7 @@ class ChatResponseModel(BaseModel):
 
     explanation: str = Field(
         ...,
-        description="A clear and detailed explanation of the answer or solution",
+        description="A clear and detailed explanation of the solution",
         min_length=10,
     )
 

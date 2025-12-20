@@ -1,6 +1,7 @@
 """LangChain chain for chat with structured output."""
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -131,8 +132,6 @@ class LlmRunnable(Runnable):
 
             # Try to extract JSON from markdown code blocks if present
             if "```json" in response_clean or "```" in response_clean:
-                import re
-
                 json_match = re.search(
                     r"```(?:json)?\s*(\{.*?\})\s*```", response_clean, re.DOTALL
                 )
@@ -143,6 +142,40 @@ class LlmRunnable(Runnable):
                         return ChatResponseModel(**parsed_data)
                     except json.JSONDecodeError:
                         logger.debug("Failed to parse JSON from code block")
+
+            # Try to parse markdown format with **explanation:** and **code:** markers
+            if "**explanation:" in response_clean.lower() or "**code:" in response_clean.lower():
+                try:
+                    explanation = ""
+                    code = ""
+                    
+                    # Extract explanation (text after **explanation:** until **code:** or end of string)
+                    explanation_pattern = r"\*\*explanation:\*\*\s*(.*?)(?=\*\*code:\*\*|\*\*Code:\*\*|$)"
+                    explanation_match = re.search(explanation_pattern, response_clean, re.DOTALL | re.IGNORECASE)
+                    if explanation_match:
+                        explanation = explanation_match.group(1).strip()
+                        # Remove any trailing markdown artifacts or asterisks
+                        explanation = re.sub(r"\*+$", "", explanation, flags=re.MULTILINE).strip()
+                    
+                    # Extract code block after **code:** marker
+                    # Look for code block (```language ... ```) after **code:**
+                    code_block_pattern = r"\*\*code:\*\*\s*(?:.*?)?```(?:\w+)?\s*(.*?)```"
+                    code_block_match = re.search(code_block_pattern, response_clean, re.DOTALL | re.IGNORECASE)
+                    if code_block_match:
+                        code = code_block_match.group(1).strip()
+                    else:
+                        # Try to get any text after **code:** if no code block
+                        code_text_pattern = r"\*\*code:\*\*\s*(.*?)(?=\n\n|\n\*|$)"
+                        code_text_match = re.search(code_text_pattern, response_clean, re.DOTALL | re.IGNORECASE)
+                        if code_text_match:
+                            code = code_text_match.group(1).strip()
+                    
+                    # If we successfully extracted an explanation, use it
+                    if explanation:
+                        logger.debug("Successfully parsed markdown format with explanation and code markers")
+                        return ChatResponseModel(explanation=explanation, code=code if code else "")
+                except Exception as markdown_error:
+                    logger.debug(f"Failed to parse markdown format: {markdown_error}")
 
             # Try using the Pydantic parser (it may extract structured data from text)
             try:

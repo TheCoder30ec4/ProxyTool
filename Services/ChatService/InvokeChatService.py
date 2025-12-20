@@ -240,6 +240,8 @@ def InvokeChat(
                 f"Error saving conversation to database: {e}. Continuing without saving."
             )
             db.rollback()
+            
+        print("Result from invoke service:",result.code)
 
         # Format response
         response_data = {
